@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>方块连线 - 益智小游戏</title>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <style>
+    /* 基础样式 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background-color: #f8fafc;
+      color: #166534;
+    }
+    
+    /* 游戏容器 */
+    .game-container {
+      max-width: 400px;
+      width: 100%;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .game-container:hover {
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    }
+    
+    /* 标题栏 */
+    .game-header {
+      background-color: rgba(74, 222, 128, 0.1);
+      padding: 16px;
+      border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .game-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #166534;
+    }
+    
+    .header-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .header-btn {
+      padding: 8px;
+      border-radius: 50%;
+      background: none;
+      border: none;
+      color: #166534;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .header-btn:hover {
+      background-color: rgba(74, 222, 128, 0.2);
+    }
+    
+    /* 游戏信息区 */
+    .game-info {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .info-item {
+      text-align: center;
+    }
+    
+    .info-label {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+    
+    .info-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #166534;
+    }
+    
+    /* 游戏区域 */
+    .game-board-container {
+      padding: 16px;
+      background-color: #f8fafc;
+    }
+    
+    .game-board {
+      width: 100%;
+      aspect-ratio: 1/1;
+      border-radius: 8px;
+      background-color: white;
+      padding: 8px;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
+      display: grid;
+      gap: 4px;
+    }
+    
+    /* 方块样式 */
+    .tile {
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .tile:hover {
+      transform: scale(1.05);
+    }
+    
+    .tile-selected {
+      box-shadow: 0 0 0 2px #166534, 0 0 0 4px white;
+    }
+    
+    /* 控制区 */
+    .game-controls {
+      padding: 16px;
+      border-top: 1px solid rgba(74, 222, 128, 0.2);
+    }
+    
+    .control-btn {
+      width: 100%;
+      padding: 10px;
+      background-color: rgba(74, 222, 128, 0.2);
+      color: #166534;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .control-btn:hover {
+      background-color: rgba(74, 222, 128, 0.3);
+    }
+    
+    /* 模态框样式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    
+    .modal {
+      background-color: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+    }
+    
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .modal-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #166534;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      color: #6b7280;
+      cursor: pointer;
+      font-size: 18px;
+      transition: color 0.2s ease;
+    }
+    
+    .close-btn:hover {
+      color: #166534;
+    }
+    
+    .modal-content {
+      margin-bottom: 24px;
+    }
+    
+    .modal-content p {
+      color: #4b5563;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    
+    .modal-btn {
+      width: 100%;
+      padding: 10px;
+      background-color: #4ade80;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .modal-btn:hover {
+      background-color: #166534;
+    }
+    
+    /* 动画效果 */
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(0); }
+    }
+    
+    .pop-animation {
+      animation: pop 0.3s ease-out forwards;
+    }
+    
+    @keyframes scorePopup {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-20px); opacity: 0; }
+    }
+    
+    .score-popup {
+      animation: scorePopup 0.8s ease-out forwards;
+      position: absolute;
+      color: #166534;
+      font-weight: bold;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- 游戏容器 -->
+  <div class="game-container">
+    <!-- 游戏标题栏 -->
+    <div class="game-header">
+      <h1 class="game-title">方块连线</h1>
+      <div class="header-buttons">
+        <button id="restart-btn" class="header-btn" aria-label="重新开始">
+          <i class="fa fa-refresh"></i>
+        </button>
+        <button id="help-btn" class="header-btn" aria-label="帮助">
+          <i class="fa fa-question"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- 游戏信息区 -->
+    <div class="game-info">
+      <div class="info-item">
+        <div class="info-label">分数</div>
+        <div id="score" class="info-value">0</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">步数</div>
+        <div id="moves" class="info-value">0</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">目标</div>
+        <div class="info-value">1000</div>
+      </div>
+    </div>
+    
+    <!-- 游戏区域 -->
+    <div class="game-board-container">
+      <div id="game-board" class="game-board"></div>
+    </div>
+    
+    <!-- 控制区 -->
+    <div class="game-controls">
+      <button id="clear-selection" class="control-btn">
+        取消选择
+      </button>
+    </div>
+  </div>
+  
+  <!-- 帮助模态框 -->
+  <div id="help-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">游戏说明</h2>
+        <button id="close-help" class="close-btn">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-content">
+        <p>1. 点击并连接至少2个相同颜色的相邻方块（上、下、左、右）</p>
+        <p>2. 连接后点击起始方块或取消选择按钮消除它们</p>
+        <p>3. 消除的方块越多，得分越高</p>
+        <p>4. 达到1000分即可获胜！</p>
+      </div>
+      <button id="start-playing" class="modal-btn">
+        开始游戏
+      </button>
+    </div>
+  </div>
+  
+  <!-- 游戏结束模态框 -->
+  <div id="game-over-modal" class="modal-overlay">
+    <div class="modal">
+      <h2 id="game-over-title" class="modal-title">游戏结束</h2>
+      <p id="game-over-message" class="modal-content">你的得分是: <span id="final-score" class="info-value">0</span></p>
+      <button id="play-again" class="modal-btn">
+        再玩一次
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // 游戏配置
+    const GAME_CONFIG = {
+      gridSize: 6, // 6x6网格
+      colors: [
+        '#4ade80', // 亮绿色
+        '#10b981', // 中绿色
+        '#059669', // 深绿色
+        '#065f46', // 暗绿色
+        '#166534', // 橄榄绿
+      ],
+      targetScore: 1000
+    };
+    
+    // 游戏状态
+    const gameState = {
+      board: [],
+      score: 0,
+      moves: 0,
+      selectedTiles: [],
+      gameOver: false
+    };
+    
+    // DOM元素
+    const gameBoard = document.getElementById('game-board');
+    const scoreDisplay = document.getElementById('score');
+    const movesDisplay = document.getElementById('moves');
+    const restartBtn = document.getElementById('restart-btn');
+    const clearSelectionBtn = document.getElementById('clear-selection');
+    const helpBtn = document.getElementById('help-btn');
+    const helpModal = document.getElementById('help-modal');
+    const closeHelpBtn = document.getElementById('close-help');
+    const startPlayingBtn = document.getElementById('start-playing');
+    const gameOverModal = document.getElementById('game-over-modal');
+    const gameOverTitle = document.getElementById('game-over-title');
+    const finalScoreDisplay = document.getElementById('final-score');
+    const playAgainBtn = document.getElementById('play-again');
+    
+    // 初始化游戏
+    function initGame() {
+      // 重置游戏状态
+      gameState.board = [];
+      gameState.score = 0;
+      gameState.moves = 0;
+      gameState.selectedTiles = [];
+      gameState.gameOver = false;
+      
+      // 更新显示
+      scoreDisplay.textContent = '0';
+      movesDisplay.textContent = '0';
+      
+      // 设置网格大小
+      gameBoard.style.gridTemplateColumns = `repeat(${GAME_CONFIG.gridSize}, 1fr)`;
+      gameBoard.innerHTML = '';
+      
+      // 生成游戏板
+      for (let row = 0; row < GAME_CONFIG.gridSize; row++) {
+        gameState.board[row] = [];
+        for (let col = 0; col < GAME_CONFIG.gridSize; col++) {
+          // 随机选择颜色
+          const colorIndex = Math.floor(Math.random() * GAME_CONFIG.colors.length);
+          gameState.board[row][col] = {
+            colorIndex,
+            removed: false
+          };
+          
+          // 创建方块元素
+          const tile = document.createElement('div');
+          tile.classList.add('tile');
+          tile.style.backgroundColor = GAME_CONFIG.colors[colorIndex];
+          tile.dataset.row = row;
+          tile.dataset.col = col;
+          
+          // 添加点击事件
+          tile.addEventListener('click', () => handleTileClick(row, col));
+          
+          gameBoard.appendChild(tile);
+        }
+      }
+      
+      // 检查初始状态是否有可消除的方块，如果没有则重新生成
+      if (!hasPossibleMoves()) {
+        initGame();
+      }
+    }
+    
+    // 处理方块点击
+    function handleTileClick(row, col) {
+      if (gameState.gameOver) return;
+      
+      const tile = gameState.board[row][col];
+      if (tile.removed) return;
+      
+      // 如果没有选中的方块，选中当前方块
+      if (gameState.selectedTiles.length === 0) {
+        selectTile(row, col);
+        return;
+      }
+      
+      // 如果点击的是已选中的最后一个方块，尝试消除
+      const lastSelected = gameState.selectedTiles[gameState.selectedTiles.length - 1];
+      if (lastSelected.row === row && lastSelected.col === col) {
+        if (gameState.selectedTiles.length >= 2) {
+          removeSelectedTiles();
+        } else {
+          clearSelection();
+        }
+        return;
+      }
+      
+      // 检查是否与最后一个选中的方块相邻
+      const isAdjacent = 
+        (Math.abs(lastSelected.row - row) === 1 && lastSelected.col === col) ||
+        (Math.abs(lastSelected.col - col) === 1 && lastSelected.row === row);
+      
+      // 检查颜色是否相同
+      const isSameColor = tile.colorIndex === gameState.board[lastSelected.row][lastSelected.col].colorIndex;
+      
+      // 检查是否已经选中
+      const isAlreadySelected = gameState.selectedTiles.some(t => t.row === row && t.col === col);
+      
+      if (isAdjacent && isSameColor && !isAlreadySelected) {
+        selectTile(row, col);
+      }
+    }
+    
+    // 选中方块
+    function selectTile(row, col) {
+      gameState.selectedTiles.push({ row, col });
+      updateTileVisuals();
+    }
+    
+    // 更新方块视觉效果
+    function updateTileVisuals() {
+      // 先移除所有选中状态
+      document.querySelectorAll('.tile').forEach(tile => {
+        tile.classList.remove('tile-selected');
+      });
+      
+      // 为选中的方块添加选中状态
+      gameState.selectedTiles.forEach(({ row, col }) => {
+        const tile = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+        if (tile) {
+          tile.classList.add('tile-selected');
+        }
+      });
+    }
+    
+    // 清除选择
+    function clearSelection() {
+      gameState.selectedTiles = [];
+      updateTileVisuals();
+    }
+    
+    // 移除选中的方块
+    function removeSelectedTiles() {
+      if (gameState.selectedTiles.length < 2) return;
+      
+      // 增加步数
+      gameState.moves++;
+      movesDisplay.textContent = gameState.moves;
+      
+      // 计算得分 (选中的方块数量的平方)
+      const points = gameState.selectedTiles.length ** 2 * 10;
+      gameState.score += points;
+      scoreDisplay.textContent = gameState.score;
+      
+      // 显示得分动画
+      showScorePopup(points);
+      
+      // 标记方块为已移除并添加动画
+      gameState.selectedTiles.forEach(({ row, col }) => {
+        gameState.board[row][col].removed = true;
+        const tile = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+        if (tile) {
+          tile.classList.add('pop-animation');
+        }
+      });
+      
+      // 等待动画完成后处理方块下落和填充
+      setTimeout(() => {
+        dropTiles();
+        fillEmptySpaces();
+        clearSelection();
+        
+        // 检查游戏是否结束
+        if (gameState.score >= GAME_CONFIG.targetScore) {
+          endGame(true);
+        } else if (!hasPossibleMoves()) {
+          endGame(false);
+        }
+      }, 300);
+    }
+    
+    // 显示得分动画
+    function showScorePopup(points) {
+      const popup = document.createElement('div');
+      popup.classList.add('score-popup');
+      popup.textContent = `+${points}`;
+      
+      // 定位在游戏板中心
+      const boardRect = gameBoard.getBoundingClientRect();
+      popup.style.left = `${boardRect.left + boardRect.width / 2}px`;
+      popup.style.top = `${boardRect.top + boardRect.height / 2}px`;
+      
+      document.body.appendChild(popup);
+      
+      // 动画结束后移除元素
+      setTimeout(() => {
+        popup.remove();
+      }, 800);
+    }
+    
+    // 方块下落
+    function dropTiles() {
+      for (let col = 0; col < GAME_CONFIG.gridSize; col++) {
+        let emptyCount = 0;
+        
+        // 从底部向上移动方块填补空白
+        for (let row = GAME_CONFIG.gridSize - 1; row >= 0; row--) {
+          if (gameState.board[row][col].removed) {
+            emptyCount++;
+          } else if (emptyCount > 0) {
+            // 移动方块
+            gameState.board[row + emptyCount][col] = gameState.board[row][col];
+            gameState.board[row][col].removed = true;
+            
+            // 更新DOM
+            const tile = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            const targetTile = document.querySelector(`[data-row="${row + emptyCount}"][data-col="${col}"]`);
+            if (tile && targetTile) {
+              targetTile.style.backgroundColor = GAME_CONFIG.colors[gameState.board[row][col].colorIndex];
+            }
+          }
+        }
+      }
+    }
+    
+    // 填充空白位置
+    function fillEmptySpaces() {
+      for (let col = 0; col < GAME_CONFIG.gridSize; col++) {
+        for (let row = 0; row < GAME_CONFIG.gridSize; row++) {
+          if (gameState.board[row][col].removed) {
+            // 生成新方块
+            const colorIndex = Math.floor(Math.random() * GAME_CONFIG.colors.length);
+            gameState.board[row][col] = {
+              colorIndex,
+              removed: false
+            };
+            
+            // 更新DOM
+            const tile = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            if (tile) {
+              tile.style.backgroundColor = GAME_CONFIG.colors[colorIndex];
+              tile.classList.remove('pop-animation');
+            }
+          }
+        }
+      }
+    }
+    
+    // 检查是否有可移动的方块
+    function hasPossibleMoves() {
+      // 检查相邻的相同颜色方块
+      for (let row = 0; row < GAME_CONFIG.gridSize; row++) {
+        for (let col = 0; col < GAME_CONFIG.gridSize; col++) {
+          const color = gameState.board[row][col].colorIndex;
+          
+          // 检查右侧方块
+          if (col < GAME_CONFIG.gridSize - 1 && gameState.board[row][col + 1].colorIndex === color) {
+            return true;
+          }
+          
+          // 检查下方方块
+          if (row < GAME_CONFIG.gridSize - 1 && gameState.board[row + 1][col].colorIndex === color) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    }
+    
+    // 结束游戏
+    function endGame(isWin) {
+      gameState.gameOver = true;
+      
+      // 更新模态框内容
+      if (isWin) {
+        gameOverTitle.textContent = '恭喜你赢了！';
+        gameOverTitle.style.color = '#059669';
+        gameOverMessage.textContent = `你在 ${gameState.moves} 步内达到了目标！`;
+      } else {
+        gameOverTitle.textContent = '游戏结束';
+        gameOverTitle.style.color = '#dc2626';
+        gameOverMessage.textContent = `你的最终得分是: `;
+      }
+      
+      finalScoreDisplay.textContent = gameState.score;
+      
+      // 显示模态框
+      setTimeout(() => {
+        gameOverModal.classList.add('active');
+      }, 500);
+    }
+    
+    // 显示帮助模态框
+    function showHelp() {
+      helpModal.classList.add('active');
+    }
+    
+    // 隐藏帮助模态框
+    function hideHelp() {
+      helpModal.classList.remove('active');
+    }
+    
+    // 隐藏游戏结束模态框
+    function hideGameOverModal() {
+      gameOverModal.classList.remove('active');
+    }
+    
+    // 事件监听
+    restartBtn.addEventListener('click', initGame);
+    clearSelectionBtn.addEventListener('click', clearSelection);
+    helpBtn.addEventListener('click', showHelp);
+    closeHelpBtn.addEventListener('click', hideHelp);
+    startPlayingBtn.addEventListener('click', hideHelp);
+    playAgainBtn.addEventListener('click', () => {
+      hideGameOverModal();
+      initGame();
+    });
+    
+    // 初始化游戏并显示帮助
+    initGame();
+    setTimeout(showHelp, 500);
+  </script>
+</body>
+</html>
